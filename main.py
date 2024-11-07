@@ -8,6 +8,8 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.exceptions import InvalidTag
 from getpass import getpass
+import random
+import string
 
 def generate_key(password: str, salt: bytes):
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(),length=32,salt=salt,iterations=100000,backend=default_backend())
@@ -41,6 +43,25 @@ def save_password_database(database, filename='passwords.json'):
     with open(filename, 'w') as f:
         json.dump(database, f, indent=4)
 
+def generate_password(length=32):
+    # Add function to be able to choose the lenght of new password
+
+    letters = string.ascii_letters
+    digits = string.digits
+    special_chars = "!@#$%&*" # Decided to use these so the password looks more natural
+
+    password = [
+        random.choice(letters),
+        random.choice(digits),
+        random.choice(special_chars)
+    ]
+
+    all_chars = letters + digits + special_chars
+    password += random.choices(all_chars, k=length - 3)
+
+    random.shuffle(password)
+    return ''.join(password)
+
 def password_manager():
     database = load_password_database()
 
@@ -50,7 +71,7 @@ def password_manager():
     key = generate_key(master_password, salt)
 
     while True:
-        print("\n1. Store a new password\n2. Retrieve a password\n3. Exit")
+        print("\n1. Store a new password\n2. Retrieve a password\n3. Generate a strong password and store it\n4. Exit")
         choice = input("Choose an option: ")
 
         if choice == '1':
@@ -61,8 +82,6 @@ def password_manager():
             database[service] = encrypted_password
             save_password_database(database)
             print(f"Password for {service} stored successfully.")
-
-        # TODO: -
 
         elif choice == '2':
             service = input("Enter the name of the service: ")
@@ -77,6 +96,15 @@ def password_manager():
                 print("No password stored for that service.")
 
         elif choice == '3':
+            service = input("Enter the name of the service: ")
+            password = generate_password()
+
+            encrypted_password = encrypt_password(password, key)
+            database[service] = encrypted_password
+            save_password_database(database)
+            print(f"Password for {service} generated successfully.")
+
+        elif choice == '4':
             print("Exiting...")
             break
 
